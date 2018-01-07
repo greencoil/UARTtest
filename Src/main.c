@@ -41,7 +41,7 @@
 #include "stm32f3xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "xprintf.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -49,7 +49,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-uint8_t rxBuff[10];
+uint8_t rxBuff[50];
 uint8_t rxData;
 uint8_t rxDataCount=0;
 /* USER CODE END PV */
@@ -75,8 +75,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 	if(rxDataCount==sizeof(rxBuff)){
 		rxDataCount=0;
 	}
-	HAL_UART_Transmit(&huart2,(uint8_t *)rxBuff,strlen(rxBuff),10);
-	HAL_UART_Transmit(&huart2,"\n",1,10);
+
+}
+uint8_t uart_getc(void){
+	uint8_t c=0;
+	char buf[1];
+	HAL_UART_Receive(&huart2,(uint8_t *)buf,sizeof(buf),0xFFFF);
+	c=buf[0];
+	return c;
+}
+void uart_putc(uint8_t c){
+	char buf[1];
+	buf[0]=c;
+	HAL_UART_Transmit(&huart2,(uint8_t *)buf,sizeof(buf),0xFFFF);
+}
+void uart_puts(char *str){
+	while(*str){
+		uart_putc(*str++);
+	}
 }
 /* USER CODE END 0 */
 
@@ -109,7 +125,8 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, &rxData, 1);
-
+  xdev_out(uart_putc);
+  int count=0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -118,8 +135,12 @@ int main(void)
   {
 	  //char msg[]="Hello STM32\n\0";
 	  //HAL_UART_Transmit(&huart2,(uint8_t *)msg,strlen(msg),10);
-	  //HAL_Delay(1000);
-
+	  HAL_Delay(1000);
+	  //uart_puts("hello STM32");
+	  xprintf("count:%d\n",count);
+	  count++;
+	  //HAL_UART_Transmit(&huart2,(uint8_t *)rxBuff,strlen(rxBuff),10);
+	  //HAL_UART_Transmit(&huart2,"\n",1,10);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -180,6 +201,7 @@ static void MX_USART2_UART_Init(void)
 
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
   huart2.Init.Mode = UART_MODE_TX_RX;
