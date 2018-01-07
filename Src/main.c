@@ -49,7 +49,9 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+uint8_t rxBuff[10];
+uint8_t rxData;
+uint8_t rxDataCount=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +65,19 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
+	HAL_UART_Receive_IT(&huart2, &rxData, 1);
+	//バッファに文字をため込む
+	if(rxDataCount<sizeof(rxBuff)){
+		rxBuff[rxDataCount]=rxData;
+		rxDataCount++;
+	}
+	if(rxDataCount==sizeof(rxBuff)){
+		rxDataCount=0;
+	}
+	HAL_UART_Transmit(&huart2,(uint8_t *)rxBuff,strlen(rxBuff),10);
+	HAL_UART_Transmit(&huart2,"\n",1,10);
+}
 /* USER CODE END 0 */
 
 int main(void)
@@ -94,6 +108,7 @@ int main(void)
   MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart2, &rxData, 1);
 
   /* USER CODE END 2 */
 
@@ -101,9 +116,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  char msg[]="Hello STM32\n\0";
-	  HAL_UART_Transmit(&huart2,(uint8_t *)msg,strlen(msg),10);
-	  HAL_Delay(1000);
+	  //char msg[]="Hello STM32\n\0";
+	  //HAL_UART_Transmit(&huart2,(uint8_t *)msg,strlen(msg),10);
+	  //HAL_Delay(1000);
+
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
