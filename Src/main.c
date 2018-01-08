@@ -47,6 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
 
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint8_t rxBuff[50];
@@ -65,6 +66,14 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+void __io_putchar(uint8_t ch) {
+HAL_UART_Transmit(&huart2, &ch, 1, 1);
+}
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 	HAL_UART_Receive_IT(&huart2, &rxData, 1);
 	//バッファに文字をため込む
@@ -127,20 +136,15 @@ int main(void)
   HAL_UART_Receive_IT(&huart2, &rxData, 1);
   xdev_out(uart_putc);
   int count=0;
+  setbuf(stdout, NULL);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  //char msg[]="Hello STM32\n\0";
-	  //HAL_UART_Transmit(&huart2,(uint8_t *)msg,strlen(msg),10);
 	  HAL_Delay(1000);
-	  //uart_puts("hello STM32");
-	  xprintf("count:%d\n",count);
-	  count++;
-	  //HAL_UART_Transmit(&huart2,(uint8_t *)rxBuff,strlen(rxBuff),10);
-	  //HAL_UART_Transmit(&huart2,"\n",1,10);
+	  printf("test:%f\n",0.1);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
