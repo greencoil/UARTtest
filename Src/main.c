@@ -46,13 +46,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
-
-
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint8_t rxBuff[50];
 uint8_t rxData;
-uint8_t rxDataCount=0;
+uint16_t rxDataCount=0;
+volatile unsigned int *DWT_CYCCNT = (volatile unsigned int *)0xE0001004; //address of the register
+volatile unsigned int *DWT_CONTROL = (volatile unsigned int *)0xE0001000; //address of the register
+volatile unsigned int *SCB_DEMCR = (volatile unsigned int *)0xE000EDFC; //address of the register
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,8 +73,23 @@ static void MX_USART2_UART_Init(void);
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
 void __io_putchar(uint8_t ch) {
-HAL_UART_Transmit(&huart2, &ch, 1, 1);
+	HAL_UART_Transmit(&huart2, &ch, 1, 1);
 }
+void EnableTiming(void){
+	*SCB_DEMCR = *SCB_DEMCR | 0x01000000;
+	*DWT_CYCCNT = 0; // reset the counter
+	*DWT_CONTROL = *DWT_CONTROL | 1 ; // enable the counter
+}
+
+void TimingDelay(unsigned int tick){
+	tick=tick*8;//マイコンのクロック準拠のため、マイコンのMHz倍が必要
+	unsigned int start, current;
+	start = *DWT_CYCCNT;
+	do{
+		current = *DWT_CYCCNT;
+	} while((current - start) < tick);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 	HAL_UART_Receive_IT(&huart2, &rxData, 1);
 	//バッファに文字をため込む
@@ -103,6 +119,10 @@ void uart_puts(char *str){
 		uart_putc(*str++);
 	}
 }
+uint8_t check_recieved_data(){
+	//rxDataBuffにそれっぽいデータが入ってるか確認。チェックサムもここで確認
+	//ヘッダのFFから
+}
 /* USER CODE END 0 */
 
 int main(void)
@@ -123,7 +143,6 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -135,16 +154,23 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, &rxData, 1);
   xdev_out(uart_putc);
-  int count=0;
   setbuf(stdout, NULL);
+  int count=0;
+  uint8_t byte_T=0x54;
+  EnableTiming();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	  HAL_Delay(1000);
-	  printf("test:%f\n",0.1);
+  while (1){
+	  check_recieved_data();
+	  //HAL_Delay(1000);
+	  //printf("char:%c byte:%x\n",byte_T,byte_T);
+	  //count++;
+	  TimingDelay(1000000);//1sec
+	  printf("count:%d\n",count);
+	  //printf("char:%c byte:%x\n",byte_T,byte_T);
+	  count++;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
